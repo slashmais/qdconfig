@@ -1,2 +1,2 @@
 # qdconfig
-Utility for config-file handling
+Simple utility for key=value pair config-files
