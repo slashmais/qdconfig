@@ -3,26 +3,28 @@
 
 #include <string>
 #include <map>
+#include <utilfuncs/utilfuncs.h>
 
 
 struct QDConfig
 {
 	std::string QDFile;
-	std::string QDPath;
-	std::map<std::string, std::string> data;
+	MSTR mkv;
 	
 	~QDConfig();
-	QDConfig();
-	QDConfig(const std::string &qdf);
+	QDConfig(const std::string &cfgfile="");
 	
-	void setval(const std::string &k, const std::string &v);
-	bool hasval(const std::string &v);
-	bool haskey(const std::string &k);
-	bool haskeyval(const std::string &k, const std::string &v);
-	const std::string getval(const std::string &k);
+	void clear(); //clears all
+	void clean(); //only clears kv-data
+	void SetConfigFile(const std::string &cfgfile);
+	void Set(const std::string &key, const std::string &value);
+	std::string Get(const std::string &key);
+	bool Has(const std::string &key);
+	bool Has(const std::string &key, const std::string &value);
+	bool HasValue(const std::string &value);
 
 	bool Save();
-	bool Load(const std::string &qdf="");
+	bool Load();
 };
 
 
