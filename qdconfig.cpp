@@ -1,51 +1,58 @@
 
 #include "qdconfig.h"
 
-QDConfig::~QDConfig()							{ clear(); }
-QDConfig::QDConfig(const std::string &cfgfile)	{ clear(); SetConfigFile(cfgfile); }
-void QDConfig::clear()							{ QDFile.clear(); mkv.clear(); }
-void QDConfig::clean()							{ mkv.clear(); }
+QDConfig::QDConfig(const std::string &cfgfile, bool bquiet)	{ clear(); bQuiet=bquiet; SetConfigFile(cfgfile, true); }
 
-void QDConfig::SetConfigFile(const std::string &cfgfile)
+void QDConfig::SetConfigFile(const std::string &cfgfile, bool bLoad)
 {
-	QDFile=cfgfile;
-	if (QDFile.empty())
+	std::string sp{}, sf{};
+	if (!cfgfile.empty())
 	{
-		std::string s{}, sf{};
-		s=thisapp();
-		sf=says(path_name(s), ".config");
-		QDFile=path_append(path_path(s), sf);
-		if (!path_realize(path_path(QDFile))) QDFile=path_append(homedir(), sf);
+		sp=path_path(cfgfile);
+		if (sp.empty()) sp=path_path(thisapp());
+		sf=path_name(cfgfile);
 	}
-	if (file_exist(QDFile)) Load();
+	else { sp=path_path(thisapp()); }
+	if (sf.empty()) sf=says(path_name(thisapp()), ".config");
+	if (!canwrite(sp)||!path_realize(sp)) sp=homedir();
+	QDFile=path_append(sp, sf);
+	if (!cfgfile.empty()&&!seqs(QDFile, cfgfile)) if (!bQuiet) say("\nConfig located at '", QDFile, "'\n");
+	if (bLoad&&file_exist(QDFile)) Load();
 }
 
 void QDConfig::Set(const std::string &key, const std::string &value)
 {
-	if (key.empty()) { sayfail("cannot define empty key"); return; }
-	mkv.Add(key, value);
-	if (!Save()) sayfail("cannot update '", QDFile, "'");
+	std::string k{key};
+	std::string v{value};
+	TRIM(k); if (k.empty()) { if (!bQuiet) sayfail("cannot define blank key\n"); return; }
+	TRIM(v);
+	if (scontainany(k, "\n\r=")||scontainany(v, "\n\r="))
+	{
+		if (!bQuiet) sayfail("cannot use newlines or '=' in key or value\n");
+		return;
+	}
+	mkv.Add(k, v);
+	Save();
 }
 
-std::string QDConfig::Get(const std::string &key)	{ return mkv.Get(key); }
-bool QDConfig::Has(const std::string &key)			{ return mkv.HasKey(key); }
-bool QDConfig::HasValue(const std::string &value)	{ return mkv.HasValue(value); }
-
-bool QDConfig::Has(const std::string &key, const std::string &value)
+size_t QDConfig::GetKeys(VSTR &v)
 {
-	return (seqs(mkv.Get(key), value));
+	v.clear();
+	for (auto p:mkv) v.Add(p.first);
+	return v.size();
 }
 
 bool QDConfig::Save()
 {
 	file_delete(QDFile);
 	std::ofstream(QDFile) << mkv;
-	return file_exist(QDFile);
+	if (!file_exist(QDFile)) return sayfail("cannot update config-file: '", QDFile, "'\n"); //always tell user
+	return true;
 }
 
 bool QDConfig::Load()
 {
-	mkv.clear();
+	clean();
 	if (istextfile(QDFile))
 	{
 		std::string s,k,v;
@@ -54,11 +61,13 @@ bool QDConfig::Load()
 		while (ifs.good())
 		{
 			std::getline(ifs, s);
+			if (s.empty()) continue;
 			if ((p=s.find("="))!=std::string::npos) { k=s.substr(0, p); TRIM(k); v=s.substr(p+1); TRIM(v); }
-			else { k=s; TRIM(k); v.clear(); }
+			else { if (!bQuiet) sayfail("'", QDFile, "' is not a valid config-file\n"); clean(); return false; }
 			if (!k.empty()) mkv.Add(k, v);
 		}
 		return true; //empty is OK
 	}
-	return sayfail("'", QDFile, "' is not a valid config-file");
+	if (!bQuiet) sayfail("'", QDFile, "' is not a valid config-file\n");
+	return false;
 }
