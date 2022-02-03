@@ -1,27 +1,27 @@
-#ifndef _qdconfig_qdconfig_h_
-#define _qdconfig_qdconfig_h_
+#ifndef _qdconfig_h_
+#define _qdconfig_h_
 
 #include <string>
 #include <map>
 #include <utilfuncs/utilfuncs.h>
 
 /*
-	Default: Uses [app-name].config as file-name, and either create
-			 the file in same location as app or in home-dir;
-	If 'cfgfile' is not full path, it will be created as per default;
-	Key & Value types must be POD
+	'cfgfile' - uses default <app-name>.config if not specified, see source for SetConfigFile()
+	Keys & Values:	uses (unicode) strings(no newlines or '='), and numbers(ints/decimals)
+	(see: test_qdconfig.cpp for usage-samples)
 */
+
 struct QDConfig
 {
-	std::string QDFile;
-	MSTR mkv;
-	bool bQuiet{true};
+	std::string CfgFile;
+	MSTR mkv; //template in utilfuncs
+	bool bQuiet{true}; //'false' used for debugging)
 	
-	void clear()												{ QDFile.clear(); mkv.clear(); }
+	void clear()												{ CfgFile.clear(); mkv.clear(); }
 	void clean()												{ mkv.clear(); }
 
 	~QDConfig()													{ clear(); }
-	QDConfig(const std::string &cfgfile="", bool bquiet=true); //set bquiet=false to debug your stuff
+	QDConfig(const std::string &cfgfile="", bool bquiet=true); //uses default_output_path() in utilfuncs
 	 
 	void SetConfigFile(const std::string &cfgfile, bool bLoad=false);
 	void Set(const std::string &key, const std::string &value);
@@ -33,9 +33,6 @@ struct QDConfig
 	bool Save();
 	bool Load();
 };
-
-
-
 
 
 #endif
